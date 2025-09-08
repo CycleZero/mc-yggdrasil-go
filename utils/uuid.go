@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"crypto/sha1"
+	"crypto/md5"
 	"encoding/hex"
 	"errors"
 	"strings"
@@ -12,19 +12,20 @@ import (
 // GenerateOfflinePlayerUUID 根据角色名称生成与离线验证系统兼容的UUID
 // https://github.com/yushijinhun/authlib-injector/wiki/Yggdrasil-%E6%9C%8D%E5%8A%A1%E7%AB%AF%E6%8A%80%E6%9C%AF%E8%A7%84%E8%8C%83#%E5%85%BC%E5%AE%B9%E7%A6%BB%E7%BA%BF%E9%AA%8C%E8%AF%81
 func GenerateOfflinePlayerUUID(playerName string) (string, error) {
-	// Java的UUID.nameUUIDFromBytes实现
-	hash := sha1.New()
-	hash.Write([]byte("OfflinePlayer:" + playerName))
-	hashBytes := hash.Sum(nil)
+	hashStr := "OfflinePlayer:" + playerName
+	data := []byte(hashStr)
 
-	// UUID v3/v5需要设置特定的位
-	hashBytes[6] &= 0x0f // clear version
-	hashBytes[6] |= 0x30 // set version to 3
-	hashBytes[8] &= 0x3f // clear variant
-	hashBytes[8] |= 0x80 // set to IETF variant
+	hash := md5.Sum(data)
 
+	// Set the version number (3) in the 7th byte (index 6)
+	hash[6] &= 0x0f // Clear the version bits
+	hash[6] |= 0x30 // Set version to 3
+
+	// Set the variant to IETF in the 9th byte (index 8)
+	hash[8] &= 0x3f // Clear the variant bits
+	hash[8] |= 0x80 // Set to IETF variant
 	// 转换为UUID对象
-	parsedUUID, err := uuid.FromBytes(hashBytes)
+	parsedUUID, err := uuid.FromBytes(hash[:])
 	if err != nil {
 		return "", err
 	}
